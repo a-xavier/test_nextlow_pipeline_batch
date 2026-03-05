@@ -30,7 +30,7 @@ process STEP_TWO {
 
 process VCF_STATS {
     container 'debian:stable-slim'
-    conda 'bioconda::bcftools=1.23'
+    conda 'bioconda::bcftools=1.23 conda-forge::awscli'
     cpus 1
     memory '2 GB'
     
