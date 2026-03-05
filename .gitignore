@@ -1,0 +1,40 @@
+# Nextflow pipeline .gitignore
+
+# MacOS system files
+.DS_Store
+
+# Nextflow work and results directories
+work/
+results/
+
+# Nextflow cache and logs
+.nextflow*
+*.log
+*.trace
+*.report
+*.timeline
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Python cache (if any scripts)
+__pycache__/
+*.pyc
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# S3 credentials or config files (if present)
+.aws/
+
+# Ignore binaries in bin/ except if you want to track them
+bin/*
+!bin/.gitkeep
+
+# Ignore test data
+*.test
+
+# Ignore output VCF stats
+*.vcf_stats.txt
