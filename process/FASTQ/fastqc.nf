@@ -10,6 +10,7 @@ process FASTQC {
 
     input:
     path fastq
+    path parser_script // from /bin to ensure it gets passed to AWS batch
 
     output:
     tuple path(fastq), path("${fastq.baseName}_preset.txt"), path("${fastq.baseName}_fastqc.zip")
@@ -22,7 +23,7 @@ process FASTQC {
 
     # Read output - Get stats - Check if small or long reads - drop tag file and use either bowtie2 or minimap2 for alignment
     # Try absolute path
-    parse_fastqc_report.sh ./*_fastqc/fastqc_data.txt > ${fastq.baseName}_preset.txt
+    ./${parser_script} ./*_fastqc/fastqc_data.txt > ${fastq.baseName}_preset.txt
 
     """
 }
