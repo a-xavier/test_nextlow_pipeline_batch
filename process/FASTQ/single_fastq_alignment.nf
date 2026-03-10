@@ -26,16 +26,8 @@ process SINGLE_FASTQ_ALIGNMENT {
     fi
 
 
-    # Comment out bowtie for now because it's faster and memory efficient 
-
-   # bowtie2 -x ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38 \
-   # -U $fastq \
-   # --sensitive \
-   # --threads ${task.cpus} \
-   # | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
-
    echo "Testing mount access..."
-    ls -ld /references
+    ls -ld ${params.reference_dir}
 
     minimap2 \
     -a -x \$preset \
