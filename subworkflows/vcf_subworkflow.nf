@@ -5,16 +5,15 @@ workflow vcf_subworkflow {
 
     // Take input files + metadata from the main workflow
     take:
-        metadata_ch // always the same
-        input_vcf_ch // name of a file
+        combined_channel // COmbine metadata and VCF file channel into one channel of tuples: [metadata, vcf_file]
 
     main:
         // Call processes or subworkflows here, e.g.:
         // my_process(metadata_ch, input_vcf_ch)
-        metadata_ch.view { println "Metadata: ${it}" }
-        input_vcf_ch.view { println "Input VCF: ${it}" }
+        combined_channel.view { println "Metadata: ${it[0]}" }
+        combined_channel.view { println "Input VCF: ${it[1]}" }
 
-        VCF_STATS(input_vcf_ch)
-        VEP_ANNOTATE(input_vcf_ch)
+        VCF_STATS(combined_channel.map { it[1] })
+        VEP_ANNOTATE(combined_channel.map { it[1] })
 
 }

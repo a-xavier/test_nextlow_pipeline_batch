@@ -1,5 +1,6 @@
 // Import all subworkflows
 include { vcf_subworkflow } from './subworkflows/vcf_subworkflow.nf'
+include { single_fastq_subworkflow } from './subworkflows/single_fastq_subworkflow.nf'
 
 workflow {
     main:
@@ -31,25 +32,36 @@ workflow {
             tuple(input.classification, file(src))
         }
             .set { input_files_ch }
+
+            input_files_ch.view { "Input file: ${it}" }
         
         // 4 - Dispatch processes based on classification
         // input_files_ch = looks like a collection of [VCF, /davetang/vcf_example/raw/refs/heads/main/vcf/S1.haplotypecaller.filtered.phased.vcf.gz]
         // All files have same classification so grabe the first one and use it to decide which process to call
 
         // For each classification we pipe it to the proper subworkflow
-            def branches = input_files_ch.branch {
-                vcf:    { tuple -> tuple[0] == 'VCF' }
-                bam:    { tuple -> tuple[0] == 'BAM' }
-                fastq:  { tuple -> tuple[0] == 'FASTQ' }
-                other:  { tuple -> true }
-            }
+        // "Paired-end FastQ",
+        // "Single FastQ",
+        // "BAM/CRAM/SAM (unaligned reads)",
+        // "BAM/CRAM/SAM (aligned reads)",
+        // "BAM/CRAM/SAM (unaligned with methylation)",
+        // "BAM/CRAM/SAM (aligned with methylation)",
+        // "Fast5 (Nanopore)",
+        // "Pod5 (Nanopore)",
+        // "VCF"
+        def branches = input_files_ch.branch {
+            vcf: it[0] == 'VCF'
+            bam_aligned_no_mod: it[0] == 'BAM/CRAM/SAM (aligned reads)'
+            single_fastq: it[0] == 'Single FastQ'
+            other: true
+        }
 
-        vcf_ch   = branches.vcf
-        bam_ch   = branches.bam
-        fastq_ch = branches.fastq
-        other_ch = branches.other
+    // Combine the branches
+    vcf_inputs_ch = metadata_ch.combine(branches.vcf.map { it[1] })
+    fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { it[1] })
 
-        // Call proper workflow for each classification
-        vcf_subworkflow(metadata_ch, vcf_ch.map {   tuple -> tuple[1] })
+    // Call the subworkflows
+    vcf_subworkflow(vcf_inputs_ch)
+    single_fastq_subworkflow(fastq_inputs_ch)
 
 }
