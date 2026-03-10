@@ -35,3 +35,4 @@ process SINGLE_FASTQ_ALIGNMENT {
     $fastq | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
    """
 }
+
