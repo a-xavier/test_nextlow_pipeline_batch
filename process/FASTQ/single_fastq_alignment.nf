@@ -34,6 +34,9 @@ process SINGLE_FASTQ_ALIGNMENT {
    # --threads ${task.cpus} \
    # | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
 
+   echo "Testing mount access..."
+    ls -ld /references
+
     minimap2 \
     -a -x \$preset \
     ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa \
