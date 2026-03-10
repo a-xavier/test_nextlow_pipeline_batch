@@ -10,10 +10,10 @@ workflow vcf_subworkflow {
     main:
         // Call processes or subworkflows here, e.g.:
         // my_process(metadata_ch, input_vcf_ch)
-        combined_channel.view { println "Metadata: ${it[0]}" }
-        combined_channel.view { println "Input VCF: ${it[1]}" }
+        combined_channel.view { item -> println "Metadata: ${item[0]}" }
+        combined_channel.view { item -> println "Input VCF: ${item[1]}" }
 
-        VCF_STATS(combined_channel.map { it[1] })
-        VEP_ANNOTATE(combined_channel.map { it[1] })
+        VCF_STATS(combined_channel.map { item -> item[1] }) // Pass only the VCF file to the VCF_STATS process
+        VEP_ANNOTATE(combined_channel.map { item -> item[1] })
 
 }

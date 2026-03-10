@@ -38,7 +38,5 @@ process SINGLE_FASTQ_ALIGNMENT {
     -a -x \$preset \
     ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa \
     $fastq | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
-
-
    """
 }
