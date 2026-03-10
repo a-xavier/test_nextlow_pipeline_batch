@@ -1,4 +1,5 @@
 include { VCF_STATS } from '../process/VCF/vcf_stats.nf'
+include { VEP_ANNOTATE } from '../process/VCF/vcf_vep_annotation.nf'
 
 workflow vcf_subworkflow {
 
@@ -14,4 +15,6 @@ workflow vcf_subworkflow {
         input_vcf_ch.view { println "Input VCF: ${it}" }
 
         VCF_STATS(input_vcf_ch)
+        VEP_ANNOTATE(input_vcf_ch)
+
 }
