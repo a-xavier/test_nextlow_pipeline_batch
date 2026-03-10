@@ -23,7 +23,7 @@ process FASTQC {
 
     # Read output - Get stats - Check if small or long reads - drop tag file and use either bowtie2 or minimap2 for alignment
     # Try absolute path
-    ./${parser_script} ./*_fastqc/fastqc_data.txt > ${fastq.baseName}_preset.txt
+    ${parser_script} ./*_fastqc/fastqc_data.txt > ${fastq.baseName}_preset.txt
 
     """
 }
