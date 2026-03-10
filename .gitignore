@@ -29,9 +29,7 @@ __pycache__/
 # S3 credentials or config files (if present)
 .aws/
 
-# Ignore binaries in bin/ except if you want to track them
-bin/*
-!bin/.gitkeep
+# KEEP BIN FOR CUSTOM SCRIPTS
 
 # Ignore test data
 *.test
