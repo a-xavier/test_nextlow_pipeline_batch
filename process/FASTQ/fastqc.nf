@@ -21,7 +21,7 @@ process FASTQC {
     """
 
     echo "Testing mount access inside container..."
-    echo "pwd: $(pwd)"
+    echo "pwd: \$PWD"
     echo "ls -la /"
     echo "ls -la ${params.reference_dir} || true"
     echo "cat /proc/mounts | grep ${params.reference_dir} || true"
