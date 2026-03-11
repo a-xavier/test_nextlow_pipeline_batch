@@ -19,11 +19,19 @@ process FASTQC {
 
     script:
     """
-    fastqc $fastq --outdir . --threads ${task.cpus} --extract
 
-    echo "TIMESTAMP: \$(date)"
-    echo "Running Find Command..."
-    find ${params.reference_dir} -maxdepth 2 -not -path '*/.*'
+    echo "Waiting for S3 mount to propagate to container..."
+    for i in {1..20}; do
+        if [ -d "${params.reference_dir}/Reference_Genomes" ]; then
+            echo "Mount detected after \$i seconds"
+            break
+        fi
+        echo "Still waiting... (\$i/20)"
+        sleep 2
+    done
+
+
+    fastqc $fastq --outdir . --threads ${task.cpus} --extract
 
     # Read output - Get stats - Check if small or long reads - drop tag file and use either bowtie2 or minimap2 for alignment
     # Try absolute path
