@@ -27,7 +27,7 @@ process SINGLE_FASTQ_ALIGNMENT {
 
 
    echo "Testing mount access..."
-    ls -ld ${params.reference_dir}
+    find ${params.reference_dir} -maxdepth 2 -not -path '*/.*'
 
     minimap2 \
     -a -x \$preset \
