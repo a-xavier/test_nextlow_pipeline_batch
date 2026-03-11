@@ -20,6 +20,12 @@ workflow single_fastq_subworkflow {
         
         fastq_and_preset_ch.view { output -> "FASTQC output: ${output}" }
 
-        SINGLE_FASTQ_ALIGNMENT(fastq_and_preset_ch)
+        def alignment_reference_fasta_file_ch = channel.fromPath("${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.mmi")
+
+        alignment_reference_fasta_file_ch.view { 
+            "Alignment reference FASTA file: ${it}"
+        }
+
+        SINGLE_FASTQ_ALIGNMENT(fastq_and_preset_ch, alignment_reference_fasta_file_ch)
 }
 

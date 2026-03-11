@@ -19,20 +19,11 @@ process FASTQC {
 
     script:
     """
-
-    echo "Testing mount access inside container..."
-    echo "pwd: \$PWD"
-    echo "ls -la /"
-    echo "ls -la ${params.reference_dir} || true"
-    echo "cat /proc/mounts | grep ${params.reference_dir} || true"
-    findmnt ${params.reference_dir} || true
-
-
     fastqc $fastq --outdir . --threads ${task.cpus} --extract
 
     # Read output - Get stats - Check if small or long reads - drop tag file and use either bowtie2 or minimap2 for alignment
+    
     # Try absolute path
     ${parser_script} ./*_fastqc/fastqc_data.txt > ${fastq.baseName}_preset.txt
-
     """
 }

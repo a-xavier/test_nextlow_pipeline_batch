@@ -10,6 +10,7 @@ process SINGLE_FASTQ_ALIGNMENT {
 
     input:
     tuple path(fastq), path(preset_file), path(fastqc_zip_file)
+    path reference_fasta_file // from channel in subworkflow, ensures it gets passed to AWS batch
 
     output:
     path "${fastq.baseName}_aligned.bam"
@@ -25,13 +26,9 @@ process SINGLE_FASTQ_ALIGNMENT {
         exit 1
     fi
 
-
-    echo "Testing mount access..."
-    find ${params.reference_dir} -maxdepth 2 -not -path '*/.*'
-
     minimap2 \
     -a -x \$preset \
-    ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa \
+    ${reference_fasta_file} \
     $fastq | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
    """
 }
