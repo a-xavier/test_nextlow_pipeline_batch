@@ -21,7 +21,8 @@ process FASTQC {
     """
     fastqc $fastq --outdir . --threads ${task.cpus} --extract
 
-    echo "Testing mount access..."
+    echo "TIMESTAMP: \$(date)"
+    echo "Running Find Command..."
     find ${params.reference_dir} -maxdepth 2 -not -path '*/.*'
 
     # Read output - Get stats - Check if small or long reads - drop tag file and use either bowtie2 or minimap2 for alignment
