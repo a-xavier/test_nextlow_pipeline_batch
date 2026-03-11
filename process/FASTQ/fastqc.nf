@@ -20,15 +20,12 @@ process FASTQC {
     script:
     """
 
-    echo "Waiting for S3 mount to propagate to container..."
-    for i in {1..20}; do
-        if [ -d "${params.reference_dir}/Reference_Genomes" ]; then
-            echo "Mount detected after \$i seconds"
-            break
-        fi
-        echo "Still waiting... (\$i/20)"
-        sleep 2
-    done
+    echo "Testing mount access inside container..."
+    echo "pwd: $(pwd)"
+    echo "ls -la /"
+    echo "ls -la ${params.reference_dir} || true"
+    echo "cat /proc/mounts | grep ${params.reference_dir} || true"
+    findmnt ${params.reference_dir} || true
 
 
     fastqc $fastq --outdir . --threads ${task.cpus} --extract
