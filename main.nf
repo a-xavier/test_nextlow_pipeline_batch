@@ -58,7 +58,8 @@ workflow {
             other: true
         }
 
-    // Combine the branches
+    // Combine the branches 
+    // this step prevents triggering a step if no vcf / fastq / pod5 etc as input
     vcf_inputs_ch = metadata_ch.combine(branches.vcf.map { it[1] })
     fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { it[1] })
 
@@ -66,4 +67,24 @@ workflow {
     vcf_subworkflow(vcf_inputs_ch)
     single_fastq_subworkflow(fastq_inputs_ch)
 
+}
+
+workflow.onComplete {
+    println "Workflow completed"
+    if (workflow.success) {
+        println "Workflow succeeded"
+        def profile = params.profile_name
+        println "Active profile: ${profile}"
+        if (profile == 'local') {
+            def workDir = workflow.workDir.toString()
+            println "Deleting local work directory: ${workDir}"
+            "rm -rf ${workDir}".execute()
+        } else if (profile == 'awsbatch') {
+            def workDir = workflow.workDir.toString()
+            println "Deleting S3 work directory: ${workDir}"
+            "aws s3 rm ${workDir} --recursive".execute()
+        }
+    } else {
+        println "Workflow failed"
+    }
 }
