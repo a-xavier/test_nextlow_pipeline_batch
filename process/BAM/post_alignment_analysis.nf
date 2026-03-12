@@ -13,6 +13,12 @@ process POST_ALIGNMENT_ANALYSIS {
     path aligned_bam_file // from previous step in subworkflow
     path preset_file
     tuple val(sample_id), val(sample_name) 
+    // Reference files
+    path fasta_reference 
+    path common_variant_vcf
+    path fasta_index
+    path fasta_dict
+    path common_variant_index
 
     output:
     path "${aligned_bam_file.baseName}_analysis_ready.bam"
@@ -20,6 +26,11 @@ process POST_ALIGNMENT_ANALYSIS {
 
     script:
     """
+
+    echo "Work dir contents before linking:"
+    ls -lh
+
+
    # Script will
    # 0 add Reads Group automatically based on metadata and bam file name
    # 1 Do BQSR -> Apply BQSR 
@@ -34,31 +45,26 @@ process POST_ALIGNMENT_ANALYSIS {
     echo "Platform for read group is \$PLATFORM "
 
    # 0 - Read groups 
-   gatk AddOrReplaceReadGroups \
-    -I ${aligned_bam_file} \
-    -O ${aligned_bam_file.baseName}_rg.bam \
-    --RGLB ${metadata.id} \
-    --RGPL \$PLATFORM \
-    --RGPU ${metadata.id} \
-    --RGID  ${sample_id} \
+   gatk AddOrReplaceReadGroups \\
+    -I ${aligned_bam_file} \\
+    -O ${aligned_bam_file.baseName}_rg.bam \\
+    --RGLB ${metadata.id} \\
+    --RGPL \$PLATFORM \\
+    --RGPU ${metadata.id} \\
+    --RGID  ${sample_id} \\
     --RGSM  ${sample_name}
-
-    # invoke index
-    ln -s ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa.fai
-    ln -s ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.dict
-    ln -s ${params.reference_dir}/dbSNP/Human/GRCH38/00-common_all.vcf.gz.tbi .
 
     # 1 - BQSR
     gatk BaseRecalibrator \\
     -I ${aligned_bam_file.baseName}_rg.bam \\
-    -R ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa \\
-    --known-sites ${params.reference_dir}/dbSNP/Human/GRCH38/00-common_all.vcf.gz \\
+    -R ${fasta_reference.name} \\
+    --known-sites ${common_variant_vcf} \\
     -O ${aligned_bam_file.baseName}_recal_data.table \\
     --maximum-cycle-value 50000
 
     # 2 - Apply BQSR 
     gatk ApplyBQSR \\
-    -R ${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa \\
+    -R ${fasta_reference.name} \\
     -I ${aligned_bam_file.baseName}_rg.bam \\
     --bqsr-recal-file ${aligned_bam_file.baseName}_recal_data.table \\
     -O ${aligned_bam_file.baseName}_bqsr.bam
