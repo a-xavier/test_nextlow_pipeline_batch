@@ -1,3 +1,5 @@
+nextflow.enable.dsl=2
+
 // Import all subworkflows
 include { vcf_subworkflow } from './subworkflows/vcf_subworkflow.nf'
 include { single_fastq_subworkflow } from './subworkflows/single_fastq_subworkflow.nf'
