@@ -9,13 +9,13 @@ process FASTQC {
     publishDir "${params.publishDir}/FastQC_Reports", mode: 'copy', pattern: '*_fastqc.zip'
 
     input:
-    path fastq
+    tuple val(metadata), val(file_unique_id), val(file_classification), path(fastq), val(sample_id), val(sample_name), val(group_name)
     path parser_script // from /bin to ensure it gets passed to AWS batch
 
     output:
-    tuple path(fastq), path("${fastq.baseName}_preset.txt"), path("${fastq.baseName}_fastqc.zip")
-    
-   
+    // Always start output with file_unique_id
+    tuple  val(file_unique_id), path(fastq), path("${fastq.baseName}_preset.txt")
+    path "${fastq.baseName}_fastqc.zip" // fastq zip file not used further
 
     script:
     """

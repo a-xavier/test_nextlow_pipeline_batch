@@ -23,7 +23,13 @@ workflow {
         // 3 - Create a chanel for input files based on metadata 
         // Will handle URL and S3 files 
         metadata_ch
-        .map { meta -> meta.validatedInputs }
+        .map { meta -> 
+        meta.validatedInputs
+        meta.validatedInputs.collect { 
+            input ->
+            input.unique_file_id = UUID.randomUUID().toString()
+            input
+        }}
         .flatten()
         .map { input ->
 
@@ -31,12 +37,12 @@ workflow {
                 ? input.url
                 : "s3://portalseq/Analysis/${params.analysis_id}/Inputs/${input.file.path.replaceFirst('^\\./','')}"
 
-            tuple(input.classification, file(src))
+            def (sample_id, sample_name, group_name) = SampleSheetParser.parseSampleSheet(metadata, file(src))
+
+            // THis is the main object that we pass to the subworkflow along with the metadata
+            tuple(input.unique_file_id, input.classification, file(src), sample_id, sample_name, group_name) // for each input create a unique input id for tracking purpose
         }
             .set { input_files_ch }
-
-            input_files_ch.view { "Input file: ${it}" }
-        
         // 4 - Dispatch processes based on classification
         // input_files_ch = looks like a collection of [VCF, /davetang/vcf_example/raw/refs/heads/main/vcf/S1.haplotypecaller.filtered.phased.vcf.gz]
         // All files have same classification so grabe the first one and use it to decide which process to call
@@ -52,39 +58,21 @@ workflow {
         // "Pod5 (Nanopore)",
         // "VCF"
         def branches = input_files_ch.branch {
-            vcf: it[0] == 'VCF'
-            bam_aligned_no_mod: it[0] == 'BAM/CRAM/SAM (aligned reads)'
-            single_fastq: it[0] == 'Single FastQ'
+            vcf: it[1] == 'VCF'
+            bam_aligned_no_mod: it[1] == 'BAM/CRAM/SAM (aligned reads)'
+            single_fastq: it[1] == 'Single FastQ'
             other: true
         }
 
     // Combine the branches 
     // this step prevents triggering a step if no vcf / fastq / pod5 etc as input
-    vcf_inputs_ch = metadata_ch.combine(branches.vcf.map { it[1] })
-    fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { it[1] })
+    // Combine the metadata channel with the corresponding file channels for each subworkflow so each 
+    // Second item here is a file Path
+    vcf_inputs_ch = metadata_ch.combine(branches.vcf.map { vcf_item -> vcf_item })
+    fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { fastq_item -> fastq_item })
 
     // Call the subworkflows
     vcf_subworkflow(vcf_inputs_ch)
     single_fastq_subworkflow(fastq_inputs_ch)
 
-}
-
-workflow.onComplete {
-    println "Workflow completed"
-    if (workflow.success) {
-        println "Workflow succeeded"
-        def profile = params.profile_name
-        println "Active profile: ${profile}"
-        if (profile == 'local') {
-            def workDir = workflow.workDir.toString()
-            println "Deleting local work directory: ${workDir}"
-            "rm -rf ${workDir}".execute()
-        } else if (profile == 'awsbatch') {
-            def workDir = workflow.workDir.toString()
-            println "Deleting S3 work directory: ${workDir}"
-            "aws s3 rm ${workDir} --recursive".execute()
-        }
-    } else {
-        println "Workflow failed"
-    }
 }

@@ -9,20 +9,29 @@ process POST_ALIGNMENT_ANALYSIS {
 
     // Input need: THe bam file / the preset file (for PL Read Group) / the sample name channel (fro SM and ID Read Groups)
     input:
-    val metadata
-    path aligned_bam_file // from previous step in subworkflow
-    path preset_file
-    tuple val(sample_id), val(sample_name) 
-    // Reference files
-    path fasta_reference 
-    path common_variant_vcf
-    path fasta_index
-    path fasta_dict
-    path common_variant_index
+    //  combined_ch.view { tuple -> 
+    // def metadata = tuple [0]
+    // def file_unique_id = tuple [1]
+    // def file_classification = tuple [2]
+    // def file_path = tuple [3]
+    // def sample_id = tuple [4]
+    // def sample_name = tuple [5]
+    // def group_name = tuple [6]
 
+    // This is combined channel
+    tuple val(metadata), val(file_unique_id), val(file_classification), val(file_path), val(sample_id), val(sample_name), val(group_name)
+    path aligned_bam_file 
+    path preset_file
+    path fasta_reference
+    path fasta_reference_index
+    path fasta_reference_dict
+    path common_variant_vcf
+    path common_variant_vcf_index
+
+        
     output:
-    path "${aligned_bam_file.baseName}_analysis_ready.bam"
-    path "${aligned_bam_file.baseName}_duplication_metrics.txt"
+        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam"), val(sample_id), val(file_unique_id)
+        path "${aligned_bam_file.baseName}_duplication_metrics.txt"
 
     script:
     """

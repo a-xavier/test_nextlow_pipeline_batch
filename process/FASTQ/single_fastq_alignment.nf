@@ -9,11 +9,11 @@ process SINGLE_FASTQ_ALIGNMENT {
     publishDir "${params.publishDir}/Aligned_BAMs", mode: 'copy', pattern: '*_aligned.bam'
 
     input:
-    tuple path(fastq), path(preset_file), path(fastqc_zip_file)
-    path reference_fasta_file // from channel in subworkflow, ensures it gets passed to AWS batch
+    tuple val(file_unique_id), path(fastq), path(preset_file)
+    path reference_mmi_file // from channel in subworkflow, ensures it gets passed to AWS batch
 
     output:
-    path "${fastq.baseName}_aligned.bam"
+    tuple val(file_unique_id),  path("${fastq.baseName}_aligned.bam")
 
     script:
     """
@@ -28,7 +28,7 @@ process SINGLE_FASTQ_ALIGNMENT {
 
     minimap2 \
     -a -x \$preset \
-    ${reference_fasta_file} \
+    ${reference_mmi_file} \
     $fastq | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
    """
 }
