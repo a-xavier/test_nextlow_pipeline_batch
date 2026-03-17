@@ -6,11 +6,12 @@ process MERGE_BAM_BY_SAMPLE_NAME {
         tuple val(sample_name), path(bam_files), val(sample_id)
 
     output:
-        tuple val(sample_name), path("${sample_name}.bam")
+        tuple val(sample_name), path("${sample_name}.bam"), path("${sample_name}.bam.bai")
 
     script:
     """
     echo "Merging BAM files for sample ${sample_name} with samtools merge"
     samtools merge -@ ${task.cpus} -o ${sample_name}.bam ${bam_files.join(' ')}
+    samtools index ${sample_name}.bam
     """
 }

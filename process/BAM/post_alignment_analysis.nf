@@ -22,7 +22,7 @@ process POST_ALIGNMENT_ANALYSIS {
     path common_variant_vcf_index
 
     output:
-        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam"), val(sample_id)
+        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam") , val(sample_id)
         path "${aligned_bam_file.baseName}_duplication_metrics.txt"
 
     script:
@@ -70,6 +70,10 @@ process POST_ALIGNMENT_ANALYSIS {
     -I ${aligned_bam_file.baseName}_bqsr.bam \\
     -O ${aligned_bam_file.baseName}_analysis_ready.bam \\
     -M ${aligned_bam_file.baseName}_duplication_metrics.txt
+
+    # 4 - Index the final bam file
+    # Will create a bai file with the same name as the bam file but with .bai extension
+    samtools index ${aligned_bam_file.baseName}_analysis_ready.bam 
  
     """
 

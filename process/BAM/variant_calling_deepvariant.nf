@@ -5,10 +5,10 @@ process VARIANT_CALLING_DEEPVARIANT {
     publishDir "${params.publishDir}/VCFs", mode: 'copy'
 
     input:
-        tuple val(sample_name), path(aligned_bam_file) // No sample id because we are done with it by now
+        tuple val(sample_name), path(aligned_bam_file), path(aligned_bam_file_index)// No sample id because we are done with it by now
         path fasta_reference
         path fasta_index
-        path fasta_dict
+        path fasta_dicta
     output:
         path "${aligned_bam_file.baseName}_variants.vcf.gz"
         path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
