@@ -1,10 +1,4 @@
 process VEP_ANNOTATE {
-
-    container 'ensemblorg/ensembl-vep'
-
-    cpus 6
-    memory 16.GB
-
     input:
     path vcf
 

@@ -1,8 +1,4 @@
 process VCF_STATS {
-    container 'debian:stable-slim'
-    conda 'bioconda::bcftools=1.23 conda-forge::awscli'
-    cpus 1
-    memory '2 GB'
     
     // We tell Nextflow to send the result to S3
     publishDir params.publishDir, mode: 'copy'

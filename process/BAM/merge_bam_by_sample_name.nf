@@ -1,16 +1,12 @@
 process MERGE_BAM_BY_SAMPLE_NAME {
-    container 'debian:stable-slim'
-    conda 'bioconda::samtools=1.23 conda-forge::awscli'
-    cpus 4
-    memory 16.GB
-
+    
     publishDir "${params.publishDir}/Merged_BAMs", mode: 'copy'
 
     input:
-        tuple val(sample_name), path(bam_files), val(sample_id), val(file_unique_id)
+        tuple val(sample_name), path(bam_files), val(sample_id)
 
     output:
-        path "${sample_name}.bam"
+        tuple val(sample_name), path("${sample_name}.bam")
 
     script:
     """

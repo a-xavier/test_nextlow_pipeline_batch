@@ -1,10 +1,4 @@
 process POST_ALIGNMENT_ANALYSIS {
-    
-    container 'debian:stable-slim'
-    conda 'bioconda::gatk4=4.6.2.0 conda-forge::awscli'
-    cpus 4
-    memory 16.GB
-
     publishDir "${params.publishDir}/Post_Alignment_Analysis", mode: 'copy'
 
     // Input need: THe bam file / the preset file (for PL Read Group) / the sample name channel (fro SM and ID Read Groups)
@@ -19,27 +13,20 @@ process POST_ALIGNMENT_ANALYSIS {
     // def group_name = tuple [6]
 
     // This is combined channel
-    tuple val(metadata), val(file_unique_id), val(file_classification), val(file_path), val(sample_id), val(sample_name), val(group_name)
-    path aligned_bam_file 
-    path preset_file
+    tuple val(sample_id), val(metadata), val(file_classification), val(file_path), \
+          val(sample_name), val(group_name), path(aligned_bam_file), path(preset_file)
     path fasta_reference
     path fasta_reference_index
     path fasta_reference_dict
     path common_variant_vcf
     path common_variant_vcf_index
 
-        
     output:
-        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam"), val(sample_id), val(file_unique_id)
+        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam"), val(sample_id)
         path "${aligned_bam_file.baseName}_duplication_metrics.txt"
 
     script:
     """
-
-    echo "Work dir contents before linking:"
-    ls -lh
-
-
    # Script will
    # 0 add Reads Group automatically based on metadata and bam file name
    # 1 Do BQSR -> Apply BQSR 
@@ -51,7 +38,6 @@ process POST_ALIGNMENT_ANALYSIS {
    # if sr -> SHORTREAD
 
     PLATFORM=\$(cat ${preset_file} )
-    echo "Platform for read group is \$PLATFORM "
 
    # 0 - Read groups 
    gatk AddOrReplaceReadGroups \\

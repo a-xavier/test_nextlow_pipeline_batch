@@ -23,26 +23,19 @@ workflow {
         // 3 - Create a chanel for input files based on metadata 
         // Will handle URL and S3 files 
         metadata_ch
-        .map { meta -> 
-        meta.validatedInputs
-        meta.validatedInputs.collect { 
-            input ->
-            input.unique_file_id = UUID.randomUUID().toString()
-            input
-        }}
+        .map { meta -> meta.validatedInputs }
         .flatten()
         .map { input ->
-
             def src = input.isUrl
                 ? input.url
                 : "s3://portalseq/Analysis/${params.analysis_id}/Inputs/${input.file.path.replaceFirst('^\\./','')}"
 
             def (sample_id, sample_name, group_name) = SampleSheetParser.parseSampleSheet(metadata, file(src))
 
-            // THis is the main object that we pass to the subworkflow along with the metadata
-            tuple(input.unique_file_id, input.classification, file(src), sample_id, sample_name, group_name) // for each input create a unique input id for tracking purpose
+            // Pass only the fields you want (no unique_file_id)
+            tuple(input.classification, file(src), sample_id, sample_name, group_name)
         }
-            .set { input_files_ch }
+        .set { input_files_ch }
         // 4 - Dispatch processes based on classification
         // input_files_ch = looks like a collection of [VCF, /davetang/vcf_example/raw/refs/heads/main/vcf/S1.haplotypecaller.filtered.phased.vcf.gz]
         // All files have same classification so grabe the first one and use it to decide which process to call
@@ -58,9 +51,9 @@ workflow {
         // "Pod5 (Nanopore)",
         // "VCF"
         def branches = input_files_ch.branch {
-            vcf: it[1] == 'VCF'
-            bam_aligned_no_mod: it[1] == 'BAM/CRAM/SAM (aligned reads)'
-            single_fastq: it[1] == 'Single FastQ'
+            vcf: it[0] == 'VCF'
+            bam_aligned_no_mod: it[0] == 'BAM/CRAM/SAM (aligned reads)'
+            single_fastq: it[0] == 'Single FastQ'
             other: true
         }
 

@@ -1,19 +1,13 @@
 process SINGLE_FASTQ_ALIGNMENT {
 
-    container 'debian:stable-slim'
-    conda 'bioconda::bowtie2=2.5.5 bioconda::minimap2=2.30 bioconda::samtools=1.23  conda-forge::awscli'
-
-    cpus 4
-    memory 16.GB
-
     publishDir "${params.publishDir}/Aligned_BAMs", mode: 'copy', pattern: '*_aligned.bam'
 
     input:
-    tuple val(file_unique_id), path(fastq), path(preset_file)
+    tuple val(sample_id), path(fastq), path(preset_file)
     path reference_mmi_file // from channel in subworkflow, ensures it gets passed to AWS batch
 
     output:
-    tuple val(file_unique_id),  path("${fastq.baseName}_aligned.bam")
+    tuple val(sample_id), path("${fastq.baseName}_aligned.bam")
 
     script:
     """

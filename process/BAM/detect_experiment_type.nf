@@ -20,7 +20,6 @@ process DETECT_EXPERIMENT_TYPE {
     """
     echo "Detecting experiment type for sample ${sample_name} using BAM file ${analysis_ready_bam_file}"
 
-
     """
     
 }
