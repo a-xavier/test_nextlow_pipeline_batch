@@ -107,11 +107,17 @@ workflow single_fastq_subworkflow {
         // output:
         //     path "${aligned_bam_file.baseName}_variants.vcf.gz"
         //     path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
+            VARIANT_CALLING_DEEPVARIANT(
+                merge_bam_output_ch,
+                alignment_reference_fasta_ch,
+                alignment_reference_fasta_index_ch,
+                alignment_reference_fasta_dict_ch
+            )
 
-        VARIANT_CALLING_HAPLOTYPE_CALLER(
-            merge_bam_output_ch,
-            alignment_reference_fasta_ch,
-            alignment_reference_fasta_index_ch,
-            alignment_reference_fasta_dict_ch
-        )
+        // VARIANT_CALLING_HAPLOTYPE_CALLER(
+        //     merge_bam_output_ch,
+        //     alignment_reference_fasta_ch,
+        //     alignment_reference_fasta_index_ch,
+        //     alignment_reference_fasta_dict_ch
+        // )
 }
