@@ -1,0 +1,28 @@
+// this process will call variants from a bam file using GATK HaplotypeCaller 
+// Let's Generate gvcf for each sample and then do joint genotyping in another step after collecting all of them 
+
+process VARIANT_CALLING_HAPLOTYPE_CALLER {
+    
+    publishDir "${params.publishDir}/VCFs/GATK/gVCFS/", mode: 'copy'
+
+    input:
+        tuple val(sample_name), path(aligned_bam_file), path(aligned_bam_file_index)// No sample id because we are done with it by now
+        path fasta_reference
+        path fasta_index
+        path fasta_dicta
+    output:
+        path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
+
+    script:  // TODO: In this process -> do a check for preset (using bam instead of fastq) and also check if WGS WES or something else
+
+    // TODO add -L 
+    """
+    gatk HaplotypeCaller \\
+        -R ${fasta_reference} \\
+        -I ${aligned_bam_file} \\
+        -O ${aligned_bam_file.baseName}_variants.g.vcf.gz \\
+        -ERC GVCF \\
+        --native-pair-hmm-threads ${task.cpus}
+    """
+
+}

@@ -2,7 +2,7 @@
 
 process VARIANT_CALLING_DEEPVARIANT {
     
-    publishDir "${params.publishDir}/VCFs", mode: 'copy'
+    publishDir "${params.publishDir}/VCFs/Deepvariant", mode: 'copy'
 
     input:
         tuple val(sample_name), path(aligned_bam_file), path(aligned_bam_file_index)// No sample id because we are done with it by now

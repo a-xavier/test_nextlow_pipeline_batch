@@ -4,6 +4,7 @@ include { SINGLE_FASTQ_ALIGNMENT } from '../process/FASTQ/single_fastq_alignment
 include { POST_ALIGNMENT_ANALYSIS } from '../process/BAM/post_alignment_analysis.nf'
 include { MERGE_BAM_BY_SAMPLE_NAME } from '../process/BAM/merge_bam_by_sample_name.nf'
 include { VARIANT_CALLING_DEEPVARIANT } from '../process/BAM/variant_calling_deepvariant.nf'
+include { VARIANT_CALLING_HAPLOTYPE_CALLER } from '../process/BAM/variant_calling_haplotype_caller.nf'
 
 workflow single_fastq_subworkflow {
 
@@ -107,15 +108,10 @@ workflow single_fastq_subworkflow {
         //     path "${aligned_bam_file.baseName}_variants.vcf.gz"
         //     path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
 
-        VARIANT_CALLING_DEEPVARIANT(
+        VARIANT_CALLING_HAPLOTYPE_CALLER(
             merge_bam_output_ch,
             alignment_reference_fasta_ch,
             alignment_reference_fasta_index_ch,
             alignment_reference_fasta_dict_ch
         )
-
-
-
-
-
 }
