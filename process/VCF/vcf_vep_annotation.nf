@@ -14,66 +14,51 @@ process VEP_ANNOTATE {
     script:
     def isBatch = workflow.profile?.contains('awsbatch')
     """
-    set -euo pipefail
+   set -euo pipefail
 
-    echo "=== Runtime checks ==="
-    echo "PWD=\$(pwd)"
-    echo "workflow.profile=${workflow.profile}"
-    echo "isBatch=${isBatch}"
-    echo "vep_cache=${vep_cache}"
+echo "=== Runtime Environment ==="
+echo "PWD: \$(pwd)"
+echo "Task CPUs: ${task.cpus}"
 
-    if ${isBatch}; then
-        CACHE_BASE=/scratch/vep_cache
-        LOCK_FILE=/scratch/vep_cache.lock
-        COMPLETE_FLAG=\$CACHE_BASE/.complete
-        TMPDIR=/scratch/tmp
+# Define a local path for the cache within the current working directory
+# Nextflow's 'scratch true' ensures this is on the 400GB disk
+LOCAL_CACHE_DIR="\$(pwd)/vep_cache_local"
 
-        echo "=== Checking /scratch mount ==="
-        if ! mountpoint -q /scratch; then
-            echo "ERROR: /scratch is not mounted"
-            exit 1
-        fi
+if [ "${isBatch}" = "true" ]; then
+    echo "=== AWS Batch Mode: Initializing Local Cache ==="
+    
+    # 1. Create the directory
+    mkdir -p "\$LOCAL_CACHE_DIR"
 
-        df -h /scratch
-        mkdir -p /scratch "\$TMPDIR"
+    # 2. Sync from S3 to the local 400GB disk
+    # This is much faster than streaming over the network during annotation
+    echo "Syncing VEP cache from S3: ${vep_cache}"
+    aws s3 sync "${vep_cache}" "\$LOCAL_CACHE_DIR" --no-progress
+    
+    CACHE_DIR="\$LOCAL_CACHE_DIR"
+else
+    echo "=== Local/HPC Mode: Using Provided Path ==="
+    CACHE_DIR="${vep_cache}"
+fi
 
-        (
-            flock -x 9
+echo "=== Cache Verified ==="
+ls -ld "\$CACHE_DIR"
 
-            if [ ! -f "\$COMPLETE_FLAG" ]; then
-                echo "Populating VEP cache into \$CACHE_BASE"
-                rm -rf "\$CACHE_BASE"
-                mkdir -p "\$CACHE_BASE"
+# Run VEP
+# Note: --fork should usually match task.cpus for maximum speed
+vep \
+    -i ${vcf} \
+    --vcf \
+    -o ${vcf.baseName}_annotated.vcf \
+    --species homo_sapiens \
+    --merged \
+    --everything \
+    --cache --offline \
+    --dir_cache "\$CACHE_DIR" \
+    --fork ${task.cpus} \
+    --buffer_size 50000 \
+    --fasta ${fasta_reference}
 
-                aws s3 sync "${vep_cache}" "\$CACHE_BASE" --no-progress
-
-                touch "\$COMPLETE_FLAG"
-            else
-                echo "VEP cache already present on this instance"
-            fi
-        ) 9>"\$LOCK_FILE"
-
-        CACHE_DIR="\$CACHE_BASE"
-    else
-        CACHE_DIR="${vep_cache}"
-    fi
-
-    echo "=== Cache location ==="
-    echo "CACHE_DIR=\$CACHE_DIR"
-    ls -ld "\$CACHE_DIR" || true
-    find "\$CACHE_DIR" -maxdepth 2 | head -50 || true
-
-    vep \
-      -i ${vcf} \
-      --vcf \
-      -o ${vcf.baseName}_annotated.vcf \
-      --species homo_sapiens \
-      --merged \
-      --everything \
-      --cache --offline \
-      --dir_cache "\$CACHE_DIR" \
-      --fork ${task.cpus} \
-      --buffer_size 50000 \
-      --fasta ${fasta_reference}
+echo "=== Annotation Complete ==="
     """
 }
