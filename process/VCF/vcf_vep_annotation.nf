@@ -17,7 +17,7 @@ process VEP_ANNOTATE {
     set -euo pipefail
 
     echo "=== Runtime checks ==="
-    echo "PWD=$(pwd)"
+    echo "PWD=\$(pwd)"
     echo "workflow.profile=${workflow.profile}"
     echo "isBatch=${isBatch}"
     echo "vep_cache=${vep_cache}"
