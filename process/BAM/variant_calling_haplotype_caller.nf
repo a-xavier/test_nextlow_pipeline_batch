@@ -20,7 +20,7 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
     """
 
     # Outfile pattern is OUTBED="\${BASENAME%.*}.bed"
-    ./${bed_coverage_maker_script} 5 ${aligned_bam_file}
+    ${bed_coverage_maker_script} 5 ${aligned_bam_file}
 
     gatk HaplotypeCaller \\
         -R ${fasta_reference} \\
