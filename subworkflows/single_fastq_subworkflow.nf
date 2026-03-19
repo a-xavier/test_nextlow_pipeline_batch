@@ -5,6 +5,7 @@ include { POST_ALIGNMENT_ANALYSIS } from '../process/BAM/post_alignment_analysis
 include { MERGE_BAM_BY_SAMPLE_NAME } from '../process/BAM/merge_bam_by_sample_name.nf'
 include { VARIANT_CALLING_DEEPVARIANT } from '../process/BAM/variant_calling_deepvariant.nf'
 include { VARIANT_CALLING_HAPLOTYPE_CALLER } from '../process/BAM/variant_calling_haplotype_caller.nf'
+include { VEP_ANNOTATE } from '../process/VCF/vcf_vep_annotation.nf'
 
 workflow single_fastq_subworkflow {
 
@@ -107,17 +108,29 @@ workflow single_fastq_subworkflow {
         // output:
         //     path "${aligned_bam_file.baseName}_variants.vcf.gz"
         //     path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
-            VARIANT_CALLING_DEEPVARIANT(
-                merge_bam_output_ch,
-                alignment_reference_fasta_ch,
-                alignment_reference_fasta_index_ch,
-                alignment_reference_fasta_dict_ch
-            )
+        
+            // VARIANT_CALLING_DEEPVARIANT(
+            //     merge_bam_output_ch,
+            //     alignment_reference_fasta_ch,
+            //     alignment_reference_fasta_index_ch,
+            //     alignment_reference_fasta_dict_ch
+            // )
 
-        // VARIANT_CALLING_HAPLOTYPE_CALLER(
-        //     merge_bam_output_ch,
-        //     alignment_reference_fasta_ch,
-        //     alignment_reference_fasta_index_ch,
-        //     alignment_reference_fasta_dict_ch
-        // )
+        def (gvcf_ch, vcf_ch) = VARIANT_CALLING_HAPLOTYPE_CALLER(
+            merge_bam_output_ch,
+            alignment_reference_fasta_ch,
+            alignment_reference_fasta_index_ch,
+            alignment_reference_fasta_dict_ch
+        )
+
+        // 6 - VEP annotation
+        VEP_ANNOTATE(
+            vcf_ch,
+            channel.value(params.vep_cache),
+            alignment_reference_fasta_ch,
+            alignment_reference_fasta_index_ch,
+            alignment_reference_fasta_dict_ch
+        )
+
+
 }

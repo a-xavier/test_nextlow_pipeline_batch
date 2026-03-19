@@ -3,7 +3,7 @@
 
 process VARIANT_CALLING_HAPLOTYPE_CALLER {
     
-    publishDir "${params.publishDir}/VCFs/GATK/gVCFS/", mode: 'copy'
+    publishDir "${params.publishDir}/VCFs/GATK/" ,mode: 'copy'
 
     input:
         tuple val(sample_name), path(aligned_bam_file), path(aligned_bam_file_index)// No sample id because we are done with it by now
@@ -12,6 +12,7 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
         path fasta_dicta
     output:
         path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
+        path "${aligned_bam_file.baseName}_variants.vcf.gz"
 
     script:  // TODO: In this process -> do a check for preset (using bam instead of fastq) and also check if WGS WES or something else
 
@@ -23,6 +24,11 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
         -O ${aligned_bam_file.baseName}_variants.g.vcf.gz \\
         -ERC GVCF \\
         --native-pair-hmm-threads ${task.cpus}
-    """
 
+    # Do Single sample genotyping to get a regular vcf as well
+    gatk GenotypeGVCFs \\
+        -R ${fasta_reference} \\
+        -V ${aligned_bam_file.baseName}_variants.g.vcf.gz \\
+        -O ${aligned_bam_file.baseName}_variants.vcf.gz
+    """
 }

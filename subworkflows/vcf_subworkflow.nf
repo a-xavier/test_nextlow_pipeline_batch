@@ -14,6 +14,6 @@ workflow vcf_subworkflow {
         combined_channel.view { item -> println "Input VCF: ${item[1]}" }
 
         VCF_STATS(combined_channel.map { item -> item[1] }) // Pass only the VCF file to the VCF_STATS process
-        VEP_ANNOTATE(combined_channel.map { item -> item[1] })
+        // VEP_ANNOTATE(combined_channel.map { item -> item[1] })
 
 }
