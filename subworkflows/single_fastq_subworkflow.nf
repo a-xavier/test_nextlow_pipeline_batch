@@ -26,6 +26,7 @@ workflow single_fastq_subworkflow {
 
         // Parser script just to make sure 
         def parser_script_ch = channel.value(file("${projectDir}/bin/parse_fastqc_report.sh"))
+        def bed_coverage_maker_ch = channel.value(file("${projectDir}/bin/Experiment_Type_Detector.sh"))
 
         // Combined Channel is invariable and will be used for all inputs before merging
         
@@ -120,7 +121,8 @@ workflow single_fastq_subworkflow {
             merge_bam_output_ch,
             alignment_reference_fasta_ch,
             alignment_reference_fasta_index_ch,
-            alignment_reference_fasta_dict_ch
+            alignment_reference_fasta_dict_ch,
+            bed_coverage_maker_ch
         )
 
         // 6 - VEP annotation
