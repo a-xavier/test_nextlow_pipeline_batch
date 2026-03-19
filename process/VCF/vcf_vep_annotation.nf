@@ -18,11 +18,33 @@ process VEP_ANNOTATE {
     def isBatch = params.profile_name == "awsbatch"
     """
     # If on aws download cache from s3, otherwise use local cache
-    
+    # Cache is large so we download it to scratch
+
     if ${isBatch}; then
-    mkdir -p /scratch/vep_cache # Download to Scratch because the cache is large for the 20GB container
-    aws s3 sync ${vep_cache} /scratch/vep_cache --no-progress
-    CACHE_DIR=/scratch/vep_cache
+        CACHE_BASE=/scratch/vep_cache
+        LOCK_FILE=/scratch/vep_cache.lock
+        COMPLETE_FLAG=\$CACHE_BASE/.complete
+
+        mkdir -p /scratch
+
+        (
+            flock -x 9
+
+            if [ ! -f "\$COMPLETE_FLAG" ]; then
+                echo "Populating VEP cache..."
+
+                rm -rf "\$CACHE_BASE"
+                mkdir -p "\$CACHE_BASE"
+
+                aws s3 sync ${vep_cache} "\$CACHE_BASE" --no-progress
+
+                # mark as complete ONLY if sync succeeds
+                touch "\$COMPLETE_FLAG"
+            fi
+
+        ) 9>"\$LOCK_FILE"
+
+        CACHE_DIR="\$CACHE_BASE"
     else
         CACHE_DIR=${vep_cache}
     fi
