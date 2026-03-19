@@ -20,9 +20,9 @@ process VEP_ANNOTATE {
     # If on aws download cache from s3, otherwise use local cache
     
     if ${isBatch}; then
-      mkdir -p vep_cache
-      aws s3 sync ${vep_cache} vep_cache --no-progress
-      CACHE_DIR=vep_cache
+    mkdir -p /scratch/vep_cache # Download to Scratch because the cache is large for the 20GB container
+    aws s3 sync ${vep_cache} /scratch/vep_cache --no-progress
+    CACHE_DIR=/scratch/vep_cache
     else
         CACHE_DIR=${vep_cache}
     fi
