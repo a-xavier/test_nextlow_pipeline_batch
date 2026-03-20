@@ -126,13 +126,16 @@ workflow single_fastq_subworkflow {
         )
 
         // 6 - VEP annotation
-        VEP_ANNOTATE(
+        def annotated_vcf_ch = VEP_ANNOTATE(
             vcf_ch,
             channel.value(params.vep_cache),
             alignment_reference_fasta_ch,
             alignment_reference_fasta_index_ch,
             alignment_reference_fasta_dict_ch
         )
+
+    emit:
+        final_files_single_fastq = annotated_vcf_ch // [sample_name, annotated_vcf_file]
 
 
 }

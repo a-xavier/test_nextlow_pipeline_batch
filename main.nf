@@ -3,6 +3,8 @@ nextflow.enable.dsl=2
 // Import all subworkflows
 include { vcf_subworkflow } from './subworkflows/vcf_subworkflow.nf'
 include { single_fastq_subworkflow } from './subworkflows/single_fastq_subworkflow.nf'
+// Processes 
+include { ZIP_PUBLISHDIR } from './process/OTHER/zip_publishdir.nf'
 
 workflow {
     main:
@@ -14,26 +16,30 @@ workflow {
         }
 
         // 1 - Access the json on s3
-        def jsonFile = file("s3://portalseq/Analysis/${params.analysis_id}/Inputs/${params.analysis_id}_run.json")
-        def metadata = new groovy.json.JsonSlurper().parse(jsonFile)
-
-        // 2 - Create channel from metadata
-        channel.value(metadata).set { metadata_ch }
+        def s3_json_path = "s3://portalseq/Analysis/${params.analysis_id}/Inputs/${params.analysis_id}_run.json"
+       // Assign to metadata channel - this will be used to pass metadata to
+       def metadata_ch = channel
+        .fromPath(s3_json_path)
+        .map { path -> 
+            return new groovy.json.JsonSlurper().parse(path) 
+        }
 
         // 3 - Create a chanel for input files based on metadata 
         // Will handle URL and S3 files 
         metadata_ch
-        .map { meta -> meta.validatedInputs }
-        .flatten()
-        .map { input ->
+        .flatMap { meta -> 
+        // We pass 'meta' into the next step so it's never null
+        return meta.validatedInputs.collect { [meta, it] } 
+        }
+        .map { meta, input ->
             def src = input.isUrl
                 ? input.url
                 : "s3://portalseq/Analysis/${params.analysis_id}/Inputs/${input.file.path.replaceFirst('^\\./','')}"
 
-            def (sample_id, sample_name, group_name) = SampleSheetParser.parseSampleSheet(metadata, file(src))
+            // Use the 'meta' we just confirmed exists
+            def (sample_id, sample_name, group_name) = SampleSheetParser.parseSampleSheet(meta, file(src))
 
-            // Pass only the fields you want (no unique_file_id)
-            tuple(input.classification, file(src), sample_id, sample_name, group_name)
+            return tuple(input.classification, file(src), sample_id, sample_name, group_name)
         }
         .set { input_files_ch }
         // 4 - Dispatch processes based on classification
@@ -65,7 +71,21 @@ workflow {
     fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { fastq_item -> fastq_item })
 
     // Call the subworkflows
-    vcf_subworkflow(vcf_inputs_ch)
-    single_fastq_subworkflow(fastq_inputs_ch)
+    // 2 cant trigger at same time for now
+    def empty_ch = channel.empty()
 
+    def tag_single_fq = single_fastq_subworkflow(fastq_inputs_ch).final_files_single_fastq
+    
+    def tag_vcf = vcf_subworkflow(vcf_inputs_ch).final_files_vcf
+    
+    def tag_channel = empty_ch.mix(
+        tag_single_fq,
+        tag_vcf
+    ).collect()
+
+    ZIP_PUBLISHDIR(
+        tag_channel,
+        metadata_ch.map { meta -> meta.analysisName }, // Assuming name_of_run is the same for all items, we can just take the first one 
+        "${params.publishDir}"
+    )
 }

@@ -10,6 +10,7 @@ process VEP_ANNOTATE {
 
     output:
       path "${vcf.baseName}_annotated.vcf"
+      
 
     script:
     def isBatch = workflow.profile?.contains('awsbatch')
