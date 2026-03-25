@@ -7,10 +7,14 @@ process VEP_ANNOTATE {
       path fasta_reference
       path fasta_reference_index
       path fasta_reference_dict
+      val assembly
+      path dbNSFP_file
+      path dbNSFP_file_index
+      path dbscSNV_file
+      path dbscSNV_file_index
 
     output:
       path "${vcf.baseName}_annotated.vcf"
-      
 
     script:
     def isBatch = workflow.profile?.contains('awsbatch')
@@ -57,9 +61,14 @@ vep \
     --cache --offline \
     --dir_cache "\$CACHE_DIR" \
     --fork ${task.cpus} \
+    --plugin dbNSFP,${dbNSFP_file},ALL \
+    --plugin dbscSNV,${dbscSNV_file} \
+    --assembly ${assembly} \
     --buffer_size 50000 \
     --fasta ${fasta_reference}
 
 echo "=== Annotation Complete ==="
     """
 }
+
+// TODO: Replace ALL in the command here by just the needed annotations

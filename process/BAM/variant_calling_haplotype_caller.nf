@@ -11,6 +11,8 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
         path fasta_index
         path fasta_dict
         path bed_coverage_maker_script
+        path common_variants_vcf
+        path common_variants_vcf_index
     output:
         path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
         path "${aligned_bam_file.baseName}_variants.vcf.gz"
@@ -18,7 +20,6 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
     script:  // TODO: In this process -> do a check for preset (using bam instead of fastq) and also check if WGS WES or something else
 
     """
-
     # Outfile pattern is OUTBED="\${BASENAME%.*}.bed"
     ${bed_coverage_maker_script} 5 ${aligned_bam_file}
 
@@ -35,6 +36,7 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
         -R ${fasta_reference} \\
         -L ${aligned_bam_file.baseName}.bed \\
         -V ${aligned_bam_file.baseName}_variants.g.vcf.gz \\
+        --dbsnp ${common_variants_vcf} \\
         -O ${aligned_bam_file.baseName}_variants.vcf.gz
     """
 }

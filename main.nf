@@ -24,6 +24,23 @@ workflow {
             return new groovy.json.JsonSlurper().parse(path) 
         }
 
+        metadata_ch.view { meta ->
+            println "########################"
+            println "Analysis Name: ${meta.analysisName}"
+            println "Analysis ID: ${meta.id}"
+            println "Selected Options: ${meta.selectedOptions}"
+            // print all validated inputs 
+            // if usUrl print url otherwise print file.path 
+            meta.validatedInputs.each { input ->
+                def src = input.isUrl
+                    ? input.url
+                    : "${input.file.path}"
+                
+                println "${src}: ${input.classification}"
+            }
+            println "########################"
+        }
+
         // 3 - Create a chanel for input files based on metadata 
         // Will handle URL and S3 files 
         metadata_ch
@@ -56,10 +73,10 @@ workflow {
         // "Fast5 (Nanopore)",
         // "Pod5 (Nanopore)",
         // "VCF"
-        def branches = input_files_ch.branch {
-            vcf: it[0] == 'VCF'
-            bam_aligned_no_mod: it[0] == 'BAM/CRAM/SAM (aligned reads)'
-            single_fastq: it[0] == 'Single FastQ'
+        def branches = input_files_ch.branch { item ->
+            vcf: item[0] == 'VCF'
+            bam_aligned_no_mod: item[0] == 'BAM/CRAM/SAM (aligned reads)'
+            single_fastq: item[0] == 'Single FastQ'
             other: true
         }
 

@@ -24,6 +24,10 @@ process SINGLE_FASTQ_ALIGNMENT {
     -a -x \$preset \
     ${reference_mmi_file} \
     $fastq | samtools view -bS - | samtools sort -o ${fastq.baseName}_aligned.bam
+   
+    # Here only keep the autosomes + X + Y + MT - Discard decoy contigs and unplaced contigs
+    # This avoids clutter and a 500 + vcf header 
+    samtools view -b ${fastq.baseName}_aligned.bam 
    """
 }
 

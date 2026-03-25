@@ -15,14 +15,78 @@ workflow single_fastq_subworkflow {
     main:
         println "Running single FASTQ subworkflow"
 
+        // From metadata set assembly channel - to decide which reference we are going to use:
+        // TODO: Cleanup this into a better process
+        // Maybe return a channel of references instead of individual channels
+        //     def references_ch = combined_ch.map { item ->
+        //     def meta = item[0]
+        //     def assembly = meta.selectedOptions.human_reference_genome ?: 'GRCh38'
+        //     def ref_dir = params.reference_dir
+        //     [
+        //         mmi: file("${ref_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.mmi"),
+        //         fasta: file("${ref_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.fa"),
+        //         fasta_index: file("${ref_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.fa.fai"),
+        //         fasta_dict: file("${ref_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.dict"),
+        //         common_vcf: file("${ref_dir}/dbSNP/Human/${assembly}/00-common_all.vcf.gz"),
+        //         common_vcf_index: file("${ref_dir}/dbSNP/Human/${assembly}/00-common_all.vcf.gz.tbi"),
+        //         dbscSNV: file("${ref_dir}/dbscSNV/${assembly}/dbscSNV1.1_${assembly}.txt.gz"),
+        //         dbscSNV_index: file("${ref_dir}/dbscSNV/${assembly}/dbscSNV1.1_${assembly}.txt.gz.tbi"),
+        //         dbNSFP: file("${ref_dir}/dbNSFP/${assembly}/dbNSFP4.9c_${assembly.toLowerCase()}.gz"),
+        //         dbNSFP_index: file("${ref_dir}/dbNSFP/${assembly}/dbNSFP4.9c_${assembly.toLowerCase()}.gz.tbi")
+        //     ]
+        // }.first() /
+
+                
+        def assembly_ch = combined_ch.map {item ->
+            def meta = item[0]
+            // Assuming all files have the same assembly, we can just take the first one
+            return meta.selectedOptions.human_reference_genome ?: 'GRCh38' // Default to GRCh38 if not specified
+        }.first() // first to make sure we get a value channel instead of a collection
+
         // Reference channels (broadcasted to all samples)
-        def alignment_reference_mmi_file_ch = channel.value(file("${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.mmi"))
-        def alignment_reference_fasta_ch = channel.value(file("${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa"))
-        def alignment_reference_fasta_index_ch = channel.value(file("${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.fa.fai"))
-        def alignment_reference_fasta_dict_ch = channel.value(file("${params.reference_dir}/Reference_Genomes/Human/GRCh38/Homo_sapiens.GRCh38.dna_sm.toplevel.dict"))
-        def common_variant_vcf_ch = channel.value(file("${params.reference_dir}/dbSNP/Human/GRCH38/00-common_all.vcf.gz"))
-        def common_variant_vcf_index_ch = channel.value(file("${params.reference_dir}/dbSNP/Human/GRCH38/00-common_all.vcf.gz.tbi"))
-        def fastqc_report_parser_ch = channel.value(file("${projectDir}/bin/parse_fastqc_report.sh"))
+        def alignment_reference_mmi_file_ch = assembly_ch.map { assembly ->
+             file("${params.reference_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.mmi")
+        } // if we put .first() we have warnings WARN: The operator `first` is useless when applied to a value channel which returns a single value by definition
+
+        def alignment_reference_fasta_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.fa")
+        }
+
+        def alignment_reference_fasta_index_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.fa.fai")
+        }
+
+        def alignment_reference_fasta_dict_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/Reference_Genomes/Human/${assembly}/Homo_sapiens.${assembly}.dna_sm.toplevel.dict")
+        }
+
+        def common_variant_vcf_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbSNP/Human/${assembly}/00-common_all.vcf.gz")
+        }
+
+        def common_variant_vcf_index_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbSNP/Human/${assembly}/00-common_all.vcf.gz.tbi")
+        }
+
+        def dbscSNV_file_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbscSNV/${assembly}/dbscSNV1.1_${assembly}.txt.gz")
+        }
+
+         def dbscSNV_file_index_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbscSNV/${assembly}/dbscSNV1.1_${assembly}.txt.gz.tbi")
+        }
+
+        def dbNSFP_file_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbNSFP/${assembly}/dbNSFP4.9c_${assembly.toLowerCase()}.gz")
+        }
+
+        def dbNSFP_file_index_ch = assembly_ch.map { assembly ->
+            file("${params.reference_dir}/dbNSFP/${assembly}/dbNSFP4.9c_${assembly.toLowerCase()}.gz.tbi")
+        }
+
+
+
+
 
         // Parser script just to make sure 
         def parser_script_ch = channel.value(file("${projectDir}/bin/parse_fastqc_report.sh"))
@@ -76,7 +140,7 @@ workflow single_fastq_subworkflow {
         def post_align_input_ch = combined_ch
             .map { meta, classification, path, id, name, group -> [ id, meta, classification, path, name, group ] }
             .join( aligned_bam_ch ) 
-            .join( fastqc_output_ch.map { id, fastq, preset -> [ id, preset ] } )
+            .join( fastqc_output_ch.map { id, _fastq, preset -> [ id, preset ] } )
 
         def (post_alignment_analysis_ch, _dup_metrics_ch) = POST_ALIGNMENT_ANALYSIS(
             post_align_input_ch,
@@ -110,19 +174,21 @@ workflow single_fastq_subworkflow {
         //     path "${aligned_bam_file.baseName}_variants.vcf.gz"
         //     path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
         
-            // VARIANT_CALLING_DEEPVARIANT(
-            //     merge_bam_output_ch,
-            //     alignment_reference_fasta_ch,
-            //     alignment_reference_fasta_index_ch,
-            //     alignment_reference_fasta_dict_ch
-            // )
+        // def (_gvcf_ch, vcf_ch) = VARIANT_CALLING_DEEPVARIANT(
+        //         merge_bam_output_ch,
+        //         alignment_reference_fasta_ch,
+        //         alignment_reference_fasta_index_ch,
+        //         alignment_reference_fasta_dict_ch
+        //     )
 
-        def (gvcf_ch, vcf_ch) = VARIANT_CALLING_HAPLOTYPE_CALLER(
+        def (_gvcf_ch, vcf_ch) = VARIANT_CALLING_HAPLOTYPE_CALLER(
             merge_bam_output_ch,
             alignment_reference_fasta_ch,
             alignment_reference_fasta_index_ch,
             alignment_reference_fasta_dict_ch,
-            bed_coverage_maker_ch
+            bed_coverage_maker_ch,
+            common_variant_vcf_ch,
+            common_variant_vcf_index_ch
         )
 
         // 6 - VEP annotation
@@ -131,7 +197,12 @@ workflow single_fastq_subworkflow {
             channel.value(params.vep_cache),
             alignment_reference_fasta_ch,
             alignment_reference_fasta_index_ch,
-            alignment_reference_fasta_dict_ch
+            alignment_reference_fasta_dict_ch,
+            assembly_ch, 
+            dbNSFP_file_ch,
+            dbNSFP_file_index_ch,
+            dbscSNV_file_ch,
+            dbscSNV_file_index_ch
         )
 
     emit:

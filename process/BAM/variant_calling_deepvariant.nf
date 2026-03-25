@@ -10,8 +10,9 @@ process VARIANT_CALLING_DEEPVARIANT {
         path fasta_index
         path fasta_dicta
     output:
-        path "${aligned_bam_file.baseName}_variants.vcf.gz"
         path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
+        path "${aligned_bam_file.baseName}_variants.vcf.gz"
+        
 
     script:  // TODO: In this process -> do a check for preset (using bam instead of fastq) and also check if WGS WES or something else
 
