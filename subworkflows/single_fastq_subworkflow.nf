@@ -40,7 +40,7 @@ workflow single_fastq_subworkflow {
         def assembly_ch = combined_ch.map {item ->
             def meta = item[0]
             // Assuming all files have the same assembly, we can just take the first one
-            return meta.selectedOptions.human_reference_genome ?: 'GRCh38' // Default to GRCh38 if not specified
+            return meta.selectedOptions.human_reference_genome // Error if not there
         }.first() // first to make sure we get a value channel instead of a collection
 
         // Reference channels (broadcasted to all samples)
@@ -67,6 +67,7 @@ workflow single_fastq_subworkflow {
         def common_variant_vcf_index_ch = assembly_ch.map { assembly ->
             file("${params.reference_dir}/dbSNP/Human/${assembly}/00-common_all.vcf.gz.tbi")
         }
+        // s3://portalseq/references/dbSNP/Human/GRCH38/00-common_all.vcf.gz.tbi
 
         def dbscSNV_file_ch = assembly_ch.map { assembly ->
             file("${params.reference_dir}/dbscSNV/${assembly}/dbscSNV1.1_${assembly}.txt.gz")
