@@ -5,7 +5,7 @@ process ZIP_PUBLISHDIR {
     input:
      val tag
      val name_of_run
-     val publishDir_Path // as file so we don't stage it if running local
+     val publishDir_Path // as val so we don't stage it if running local
 
     output:
         path "${name_of_run}_results.zip"

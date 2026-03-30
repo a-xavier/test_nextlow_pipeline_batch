@@ -58,6 +58,7 @@ vep \
     --species homo_sapiens \
     --merged \
     --everything \
+    --pick_allele \
     --cache --offline \
     --dir_cache "\$CACHE_DIR" \
     --fork ${task.cpus} \
@@ -72,3 +73,5 @@ echo "=== Annotation Complete ==="
 }
 
 // TODO: Replace ALL in the command here by just the needed annotations
+// TODO: Evalutate if pick_allele is the rigth choice here:
+// On one hand it drastically reduce the number of annotation but maybe we miss stuff
