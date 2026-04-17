@@ -1,0 +1,26 @@
+## What do we need to test the fastq workflow.
+
+| Test ID | Entity A Layout     | Entity B Layout     | Assigned to Sample | In Group | # Entities Same Sample | Expected Lane Merge | Expected Entity Merge | Final BAMs for Sample | Notes                     |
+|---------|---------------------|---------------------|--------------------|----------|------------------------|----------------------|------------------------|-----------------------|---------------------------|
+| T01     | SINGLE              | —                   | Yes                | No       | 1                      | No                   | No                     | 1                     | Single FASTQ              |
+| T02     | PAIRED 1-lane       | —                   | Yes                | No       | 1                      | No                   | No                     | 1                     | Simple paired             |
+| T03     | PAIRED multi-lane   | —                   | Yes                | No       | 1                      | Yes                  | No                     | 1                     | Lane merge needed         |
+| T04     | SINGLE              | —                   | Yes                | Yes      | 1                      | No                   | No                     | 1                     | Grouped sample            |
+| T05     | PAIRED 1-lane       | —                   | Yes                | Yes      | 1                      | No                   | No                     | 1                     | Grouped paired            |
+| T06     | PAIRED multi-lane   | —                   | Yes                | Yes      | 1                      | Yes                  | No                     | 1                     | Grouped lane merge        |
+| T07     | SINGLE              | SINGLE              | Yes                | No       | 2                      | No                   | Yes                    | 1                     | Multi-entity merge        |
+| T08     | SINGLE              | PAIRED 1-lane       | Yes                | No       | 2                      | No                   | Yes                    | 1                     | Mixed layouts             |
+| T09     | SINGLE              | PAIRED multi-lane   | Yes                | No       | 2                      | B only               | Yes                    | 1                     | Lane + entity merge       |
+| T10     | PAIRED 1-lane       | PAIRED 1-lane       | Yes                | No       | 2                      | No                   | Yes                    | 1                     | Multi paired              |
+| T11     | PAIRED 1-lane       | PAIRED multi-lane   | Yes                | No       | 2                      | B only               | Yes                    | 1                     | One needs lane merge      |
+| T12     | PAIRED multi-lane   | PAIRED multi-lane   | Yes                | No       | 2                      | A & B                | Yes                    | 1                     | Both need lane merge      |
+| T13     | SINGLE              | SINGLE              | Yes                | Yes      | 2                      | No                   | Yes                    | 1                     | Grouped multi-run         |
+| T14     | SINGLE              | PAIRED multi-lane   | Yes                | Yes      | 2                      | B only               | Yes                    | 1                     | Grouped mixed layouts     |
+| T15     | PAIRED 1-lane       | PAIRED multi-lane   | Yes                | Yes      | 2                      | B only               | Yes                    | 1                     | Cohort mixed              |
+| T16     | PAIRED multi-lane   | PAIRED multi-lane   | Yes                | Yes      | 2                      | A & B                | Yes                    | 1                     | Cohort lane merge         |
+| T17     | SINGLE              | —                   | No                 | No       | 1                      | No                   | No                     | 1                     | Unassigned fallback       |
+| T18     | PAIRED 1-lane       | —                   | No                 | No       | 1                      | No                   | No                     | 1                     | Unassigned paired         |
+| T19     | PAIRED multi-lane   | —                   | No                 | No       | 1                      | Yes                  | No                     | 1                     | Unassigned lane merge     |
+| T20     | SINGLE              | SINGLE              | No                 | No       | 0                      | No                   | No                     | 2                     | Must not entity merge     |
+| T21     | PAIRED 1-lane       | SINGLE              | No                 | No       | 0                      | No                   | No                     | 2                     | Separate fallback         |
+| T22     | PAIRED multi-lane   | PAIRED multi-lane   | No                 | No       | 0                      | A & B                | No                     | 2                     | Separate lane merges      |

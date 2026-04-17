@@ -6,7 +6,7 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
     publishDir "${params.publishDir}/VCFs/GATK/" ,mode: 'copy'
 
     input:
-        tuple val(sample_name), path(aligned_bam_file), path(aligned_bam_file_index)// No sample id because we are done with it by now
+        tuple val(sample_name), val(identities), path(aligned_bam_file)
         path fasta_reference
         path fasta_index
         path fasta_dict
@@ -14,12 +14,16 @@ process VARIANT_CALLING_HAPLOTYPE_CALLER {
         path common_variants_vcf
         path common_variants_vcf_index
     output:
+        tuple val(sample_name), val(identities), path("${aligned_bam_file.baseName}_variants.vcf.gz")
         path "${aligned_bam_file.baseName}_variants.g.vcf.gz"
-        path "${aligned_bam_file.baseName}_variants.vcf.gz"
 
     script:  // TODO: In this process -> do a check for preset (using bam instead of fastq) and also check if WGS WES or something else
 
     """
+    # re-index rather than passing bail
+    # TODO: Determine if it's better or not 
+    samtools index ${aligned_bam_file}
+
     # Outfile pattern is OUTBED="\${BASENAME%.*}.bed"
     ${bed_coverage_maker_script} 5 ${aligned_bam_file}
 

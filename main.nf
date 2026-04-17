@@ -2,7 +2,7 @@ nextflow.enable.dsl=2
 
 // Import all subworkflows
 include { vcf_subworkflow } from './subworkflows/vcf_subworkflow.nf'
-include { single_fastq_subworkflow } from './subworkflows/single_fastq_subworkflow.nf'
+include { fastq_subworkflow } from './subworkflows/fastq_subworkflow.nf'
 // Processes 
 include { ZIP_PUBLISHDIR } from './process/OTHER/zip_publishdir.nf'
 
@@ -24,85 +24,99 @@ workflow {
             return new groovy.json.JsonSlurper().parse(path) 
         }
 
-        metadata_ch.view { meta ->
-            println "########################"
-            println "Analysis Name: ${meta.analysisName}"
-            println "Analysis ID: ${meta.id}"
-            println "Selected Options: ${meta.selectedOptions}"
-            // print all validated inputs 
-            // if usUrl print url otherwise print file.path 
-            meta.validatedInputs.each { input ->
-                def src = input.isUrl
-                    ? input.url
-                    : "${input.file.path}"
-                
-                println "${src}: ${input.classification}"
+        // 2 - Split by bioentities 
+        def bioentity_ch = metadata_ch
+            .flatMap { meta ->
+                meta.bioEntities.collect { be ->
+                    tuple(meta, be)
+                }
             }
-            println "########################"
-        }
 
-        // 3 - Create a chanel for input files based on metadata 
-        // Will handle URL and S3 files 
-        metadata_ch
-        .flatMap { meta -> 
-        // We pass 'meta' into the next step so it's never null
-        return meta.validatedInputs.collect { [meta, it] } 
-        }
-        .map { meta, input ->
-            def src = input.isUrl
-                ? input.url
-                : "s3://portalseq/Analysis/${params.analysis_id}/Inputs/${input.file.path.replaceFirst('^\\./','')}"
+        // 3 - Split by branch and classification
 
-            // Use the 'meta' we just confirmed exists
-            def (sample_id, sample_name, group_name) = SampleSheetParser.parseSampleSheet(meta, file(src))
+        def branched = bioentity_ch
+            .branch {
+                fastq : { meta, be -> be.payload?.kind == 'FASTQ_GROUP' }
+                bam   : { meta, be -> be.payload?.kind == 'ALIGNMENT' }
+                vcf   : { meta, be -> be.payload?.kind == 'VARIANT' }
+                pod5  : { meta, be -> be.payload?.kind == 'POD5' }
+                other : { meta, be -> true }
+            }
 
-            return tuple(input.classification, file(src), sample_id, sample_name, group_name)
-        }
-        .set { input_files_ch }
-        // 4 - Dispatch processes based on classification
-        // input_files_ch = looks like a collection of [VCF, /davetang/vcf_example/raw/refs/heads/main/vcf/S1.haplotypecaller.filtered.phased.vcf.gz]
-        // All files have same classification so grabe the first one and use it to decide which process to call
+        // 5 - Define nice inputs for each branch and call subworkflows
 
-        // For each classification we pipe it to the proper subworkflow
-        // "Paired-end FastQ",
-        // "Single FastQ",
-        // "BAM/CRAM/SAM (unaligned reads)",
-        // "BAM/CRAM/SAM (aligned reads)",
-        // "BAM/CRAM/SAM (unaligned with methylation)",
-        // "BAM/CRAM/SAM (aligned with methylation)",
-        // "Fast5 (Nanopore)",
-        // "Pod5 (Nanopore)",
-        // "VCF"
-        def branches = input_files_ch.branch { item ->
-            vcf: item[0] == 'VCF'
-            bam_aligned_no_mod: item[0] == 'BAM/CRAM/SAM (aligned reads)'
-            single_fastq: item[0] == 'Single FastQ'
-            other: true
-        }
+       
+        def fastq_entity_ch = branched.fastq
+            .map { meta, be ->
 
-    // Combine the branches 
-    // this step prevents triggering a step if no vcf / fastq / pod5 etc as input
-    // Combine the metadata channel with the corresponding file channels for each subworkflow so each 
-    // Second item here is a file Path
-    vcf_inputs_ch = metadata_ch.combine(branches.vcf.map { vcf_item -> vcf_item })
-    fastq_inputs_ch = metadata_ch.combine(branches.single_fastq.map { fastq_item -> fastq_item })
+                def p = be.payload
 
-    // Call the subworkflows
-    // 2 cant trigger at same time for now
-    def empty_ch = channel.empty()
+                [
+                    analysis : [
+                        id      : meta.id,
+                        name    : meta.analysisName,
+                        selectedOptions : meta.selectedOptions   // ✅ assembly retained
+                    ],
 
-    def tag_single_fq = single_fastq_subworkflow(fastq_inputs_ch).final_files_single_fastq
-    
-    def tag_vcf = vcf_subworkflow(vcf_inputs_ch).final_files_vcf
-    
-    def tag_channel = empty_ch.mix(
-        tag_single_fq,
-        tag_vcf
-    ).collect()
+                    sample : ResolveSample.resolveSample(meta, p.key),
 
-    ZIP_PUBLISHDIR(
-        tag_channel,
-        metadata_ch.map { meta -> meta.analysisName }, // Assuming name_of_run is the same for all items, we can just take the first one 
-        "${params.publishDir}"
-    )
+                    entity : [
+                        bioentity_id : be.id,
+                        key          : p.key,
+                        platform     : p.platform,
+                        layout       : p.layout
+                    ],
+
+                    lanes : p.lanes
+                ]
+            }
+
+        // Handle file sources
+        
+        def fastq_file_ch = fastq_entity_ch
+            .flatMap { m ->
+
+                m.lanes.collect { lane ->
+
+                    def laneFiles = (m.entity.layout == 'PAIRED')
+                        ? [lane.R1, lane.R2]
+                        : [lane.R1]
+
+                    laneFiles.collect { fq ->
+
+                        def input = fq.input
+
+                        def uri = input.source == 'URL'
+                            ? input.url
+                            : "s3://portalseq/Analysis/${m.analysis.id}/Inputs/" +
+                            input.file.path.replaceFirst('^\\./','')
+
+                       
+                    def resolved_sample_name = m.sample?.sample_name ?: m.entity.key
+                    def resolved_group_name    = m.sample?.group_name    ?: null
+
+                    def identity = [
+                        sample_name : resolved_sample_name,
+                        group_name  : resolved_group_name,
+                        entity_key  : m.entity.key,
+                        platform    : m.entity.platform
+                    ]
+
+                    [
+                        analysis : m.analysis,
+                        identity : identity,
+                        entity   : m.entity,
+
+                        file : [
+                            lane_id : lane.laneId,
+                            read    : fq.stats?.inferredRead,
+                            fastq_uri   : file(uri)
+                        ]
+                    ]
+                    }
+                }.flatten()
+            }
+            // 6 Launch all subworkflows in parallel
+            fastq_subworkflow(fastq_file_ch)
 }
+

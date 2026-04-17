@@ -13,8 +13,7 @@ process POST_ALIGNMENT_ANALYSIS {
     // def group_name = tuple [6]
 
     // This is combined channel
-    tuple val(sample_id), val(metadata), val(file_classification), val(file_path), \
-          val(sample_name), val(group_name), path(aligned_bam_file), path(preset_file)
+    tuple val(sample_name), val(identity), path(aligned_bam_file)
     path fasta_reference
     path fasta_reference_index
     path fasta_reference_dict
@@ -22,36 +21,18 @@ process POST_ALIGNMENT_ANALYSIS {
     path common_variant_vcf_index
 
     output:
-        tuple val(sample_name), path("${aligned_bam_file.baseName}_analysis_ready.bam") , val(sample_id)
+        tuple val(sample_name), val(identity), path("${aligned_bam_file.baseName}_analysis_ready.bam")
         path "${aligned_bam_file.baseName}_duplication_metrics.txt"
 
     script:
     """
    # Script will
-   # 0 add Reads Group automatically based on metadata and bam file name
    # 1 Do BQSR -> Apply BQSR 
    # 2 Mark duplicates
 
-   # Read preset file 
-   # If map-ont -> ONT 
-   # if map-hifi -> PACBIO
-   # if sr -> SHORTREAD
-
-    PLATFORM=\$(cat ${preset_file} )
-
-   # 0 - Read groups 
-   gatk AddOrReplaceReadGroups \\
-    -I ${aligned_bam_file} \\
-    -O ${aligned_bam_file.baseName}_rg.bam \\
-    --RGLB ${metadata.id} \\
-    --RGPL \$PLATFORM \\
-    --RGPU ${metadata.id} \\
-    --RGID  ${sample_id} \\
-    --RGSM  ${sample_name}
-
     # 1 - BQSR
     gatk BaseRecalibrator \\
-    -I ${aligned_bam_file.baseName}_rg.bam \\
+    -I ${aligned_bam_file} \\
     -R ${fasta_reference.name} \\
     --known-sites ${common_variant_vcf} \\
     -O ${aligned_bam_file.baseName}_recal_data.table \\
@@ -60,7 +41,7 @@ process POST_ALIGNMENT_ANALYSIS {
     # 2 - Apply BQSR 
     gatk ApplyBQSR \\
     -R ${fasta_reference.name} \\
-    -I ${aligned_bam_file.baseName}_rg.bam \\
+    -I ${aligned_bam_file} \\
     --bqsr-recal-file ${aligned_bam_file.baseName}_recal_data.table \\
     -O ${aligned_bam_file.baseName}_bqsr.bam
 

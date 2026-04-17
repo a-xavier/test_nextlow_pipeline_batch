@@ -1,8 +1,11 @@
 process VEP_ANNOTATE {
     publishDir "${params.publishDir}/Annotated_VCFs", mode: 'copy'
 
+    // Here path(vcf) should be ${sample_name}_analysis_ready_variants.vcf.gz from the previous step
+    // So we can't use basename to determine the output name, we need to pass the sample name as well
+
     input:
-      path vcf
+      tuple val(sample_name), val(identity), path(vcf)
       val vep_cache
       path fasta_reference
       path fasta_reference_index
@@ -14,7 +17,7 @@ process VEP_ANNOTATE {
       path dbscSNV_file_index
 
     output:
-      path "${vcf.baseName}_annotated.vcf"
+      tuple val(sample_name), val(identity), path("${sample_name}_annotated.vcf")
 
     script:
     def isBatch = workflow.profile?.contains('awsbatch')
@@ -54,7 +57,7 @@ ls -ld "\$CACHE_DIR"
 vep \
     -i ${vcf} \
     --vcf \
-    -o ${vcf.baseName}_annotated.vcf \
+    -o ${sample_name}_annotated.vcf \
     --species homo_sapiens \
     --merged \
     --everything \
