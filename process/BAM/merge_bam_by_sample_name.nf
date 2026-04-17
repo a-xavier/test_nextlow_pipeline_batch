@@ -3,7 +3,8 @@ process MERGE_BAM_BY_SAMPLE_NAME {
     publishDir "${params.publishDir}/Merged_BAMs", mode: 'copy'
 
     input:
-        tuple val(sample_name), val(identities_list), val(bam_file_list)
+        // here we need path instead of val for list of files
+        tuple val(sample_name), val(identities_list), path(bam_file_list)
 
     output:
         tuple val(sample_name), val(identities_list), path("${sample_name}.bam")
